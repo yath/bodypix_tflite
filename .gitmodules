@@ -1,0 +1,3 @@
+[submodule "deps/simple_bodypix_python"]
+	path = deps/simple_bodypix_python
+	url = https://github.com/ajaichemmanam/simple_bodypix_python
