@@ -1,10 +1,16 @@
 #!/bin/bash
-set -euo pipefail
+set -exuo pipefail
 
 if [ "${1:-}" != "iamamakefile" ]; then
     echo "Please run from the Makefile" >&2
     exit 1
 fi
+
+to_valid_resolution() {
+    res="$1"
+    stride="$2"
+    printf 'scale=0; ((%d / %d) * %d) + 1\n' "$res" "$stride" "$stride" | bc -q
+}
 
 cd "$(dirname "$(readlink -f "$0")")"
 
@@ -21,6 +27,16 @@ while read model; do
     while read width height; do
         while read output; do
             for pu in cpu gpu; do
+                # fix resolution
+                stride="$(printf "%s" "$model" | sed -re 's/.*stride([0-9]+).*/\1/')"
+                width="$(to_valid_resolution "$width" "$stride")"
+                height="$(to_valid_resolution "$height" "$stride")"
+
+                if [ "$width" -ne "$height" ]; then
+                    echo "Model requires rectangular input, got ${width}x${height}px (after fixing)" >&2
+                    exit 1
+                fi
+
                 # download tfjs model.
                 model_name="$(printf "%s" "$model" | sed -e 's!bodypix/!!; s!model-!!; s!/!_!g;')"
                 json_dir="$BUILD_JSON/$model_name"
@@ -40,7 +56,7 @@ while read model; do
                     mv "$tf_filename".tmp "$tf_filename"
                 fi
 
-                # convert to .tflite with given dimensions and output.
+                # convert to .tflite with given dimensions and output
                 full_model_name="${model_name}_${width}_${height}_${output}_${pu}"
                 tflite_fn="out/${full_model_name}.tflite"
                 if [ ! -e "$tflite_fn" ]; then
