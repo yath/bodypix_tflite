@@ -1,7 +1,7 @@
 PYENV := build/pyenv
 DEPS := tensorflow==2.2.0rc4 tfjs-graph-converter==1.0.1
 
-out.stamp: $(PYENV)/stamp
+out.stamp: $(PYENV)/stamp models.txt outputs.txt sizes.txt
 	./fetch-and-convert-all.bash iamamakefile
 	touch out.stamp
 
